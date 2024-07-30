@@ -8,10 +8,15 @@ class Connect4:
     def create_board(self):
         return [[0 for _ in range(7)] for _ in range(6)]
     
-    def drop_disc(self, column):
-        for row in (range(self.rows)):
+    def drop_disc(self, column, board=None, player=None):
+        if board is None:
+            board = self.board
+        if player is None:
+            player = self.current_player
+        
+        for row in range(self.rows):
             if self.board[row][column] == 0:
-                self.board[row][column] = self.current_player
+                self.board[row][column] = player
                 return True
         return False
     
