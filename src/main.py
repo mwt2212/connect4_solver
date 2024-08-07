@@ -1,3 +1,5 @@
+# TODO: Arena.py: Compete AI against one another
+
 import pygame
 import sys
 from game import Connect4
@@ -40,7 +42,7 @@ def main():
                 sys.exit()
             
             if event.type == pygame.MOUSEMOTION:
-                pygame.draw.rect(screen, LIGHTGRAY, (0, 0, WIDTH, SIZE))
+                pygame.draw.rect(screen, DARKGRAY, (0, 0, WIDTH, SIZE))
                 posx = event.pos[0]
                 col = posx // SIZE
                 posx = col * SIZE + SIZE // 2
@@ -67,6 +69,15 @@ def main():
                         game.switch_player()
 
                 draw_board(screen, game.board)
+
+def aiplay():
+    game = Connect4()
+    game_over = False
+    
+    draw_board(screen, game.board)
+
+    while not game_over:
+        pass
 
 if __name__ == "__main__":
     main()

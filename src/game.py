@@ -14,9 +14,9 @@ class Connect4:
         if player is None:
             player = self.current_player
         
-        for row in range(self.rows):
-            if self.board[row][column] == 0:
-                self.board[row][column] = player
+        for row in reversed(range(self.rows)):
+            if board[row][column] == 0:
+                board[row][column] = player
                 return True
         return False
     

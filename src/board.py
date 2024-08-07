@@ -1,9 +1,10 @@
 import pygame
+
 WIDTH = 700
+HEIGHT = 700
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
-YELLOW = (255, 255, 0)
 ORANGE = (255, 165, 0)
 WHITE = (255, 255, 255)
 LIGHTGRAY = (175, 175, 175)
@@ -18,17 +19,16 @@ def draw_board(screen, board):
     
     for row in range(rows):
         for col in range(cols):
-            pygame.draw.rect(screen, GRAY, (0, 0, WIDTH, SIZE))
-            pygame.draw.rect(screen, DARKERGRAY, (col * SIZE, row * SIZE + SIZE, SIZE, SIZE))
-
-            pygame.draw.circle(screen, LIGHTGRAY, (int(col * SIZE + SIZE / 2), int(row * SIZE + SIZE + SIZE / 2)), RAD)
+            pygame.draw.rect(screen, GRAY, (col * SIZE, (row + 1) * SIZE, SIZE, SIZE))
+            pygame.draw.circle(screen, LIGHTGRAY, (int(col * SIZE + SIZE / 2), int((row + 1) * SIZE + SIZE / 2)), RAD)
     
     for row in range(rows):
         for col in range(cols):
             if board[row][col] == 1:
-                pygame.draw.circle(screen, RED, (int(col * SIZE + SIZE / 2), screen.get_height() - int(row * SIZE + SIZE / 2)), RAD)
+                # Adjust the y-coordinate to draw from the bottom
+                pygame.draw.circle(screen, RED, (int(col * SIZE + SIZE / 2), HEIGHT - int((rows - row - 1) * SIZE + SIZE / 2)), RAD)
             elif board[row][col] == 2:
-                pygame.draw.circle(screen, ORANGE, (int(col * SIZE + SIZE / 2), screen.get_height() - int(row * SIZE + SIZE / 2)), RAD)
+                # Adjust the y-coordinate to draw from the bottom
+                pygame.draw.circle(screen, ORANGE, (int(col * SIZE + SIZE / 2), HEIGHT - int((rows - row - 1) * SIZE + SIZE / 2)), RAD)
     
     pygame.display.update()
-

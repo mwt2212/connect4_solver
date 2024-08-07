@@ -21,53 +21,57 @@ from game import Connect4
 def get_valid_columns(board):
     return [col for col in range(len(board[0])) if board[0][col] == 0]
 
-def is_terminal_node(board, game):
-    return game.check_win(1) or game.check_win(2) or len(get_valid_columns(board)) == 0
+def is_terminal_node(game):
+    return game.check_win(1) or game.check_win(2) or len(get_valid_columns(game.board)) == 0
 
-def minimax(board, depth, alpha, beta, maximizingPlayer, game):
+def minimax(game, depth, alpha, beta, maximizingPlayer):
+    board = game.board
     valid_columns = get_valid_columns(board)
-    is_terminal = is_terminal_node(board, game) 
+    is_terminal = is_terminal_node(game)
 
     if depth == 0 or is_terminal:
         if is_terminal:
             if game.check_win(1):
+                game.print_board()
+                print('W for player1')
                 return (None, 1000)
             elif game.check_win(2):
+                game.print_board()
+                print('W for player 2')
                 return (None, -1000)
             else:
                 return (None, 0)
         else:
-            # TODO: Implement Scoring/Heuristic Function
-            return (None, score_position(board, 1))
+            return (None, score_position(board, 1 if maximizingPlayer else 2))
 
     if maximizingPlayer:
         value = -float('inf')
-        column = random.choice(valid_columns)
+        best_col = random.choice(valid_columns)
         for col in valid_columns:
-            board_copy = copy.deepcopy(board)
-            game.drop_disc(col, board_copy, 1)
-            new_score = minimax(board_copy, depth-1, alpha, beta, False, game)[1]
+            game_copy = copy.deepcopy(game)
+            game_copy.drop_disc(col, game_copy.board, 1)
+            new_score = minimax(game_copy, depth-1, alpha, beta, False)[1]
             if new_score > value:
                 value = new_score
-                column = col
+                best_col = col
             alpha = max(alpha, value)
             if alpha >= beta:
                 break
-        return column, value
+        return best_col, value
     else:                           # Minimizing Player
         value = float('inf')
-        column = random.choice(valid_columns)
+        best_col = random.choice(valid_columns)
         for col in valid_columns:
-            board_copy = copy.deepcopy(board)
-            game.drop_disc(col, board_copy, 2)
-            new_score = minimax(board_copy, depth-1, alpha, beta, True, game)[1]
+            game_copy = copy.deepcopy(game)
+            game_copy.drop_disc(col, game_copy.board, 2)
+            new_score = minimax(game_copy, depth-1, alpha, beta, True)[1]
             if new_score < value:
                 value = new_score
-                column = col
+                best_col = col
             beta = min(beta, value)
             if alpha >= beta:
                 break
-        return column, value
+        return best_col, value
     
 def check_patterns(board, player):
     rows = len(board)
@@ -96,37 +100,42 @@ def check_patterns(board, player):
                 if all(index not in used_indices for index in indices):
                     sequence = [board[row][col], board[row][col+1], board[row][col+2]]
                     adjacent1 = board[row][col+3] if col+3 < cols else -1
-                    if sequence.count(player) == 3 and adjacent1 == 0:
+                    adjacent2 = board[row][col-1] if col-1 >= 0 else -1
+                    if sequence.count(player) == 3 and (adjacent1 == 0 or adjacent2 == 0): 
                         count_three += 1
                         used_indices.update(indices)
 
             # Check vertical for three-in-a-row first
-            if row <= rows - 4:
+            if row <= rows - 3:
                 indices = [(row, col), (row+1, col), (row+2, col)]
                 if all(index not in used_indices for index in indices):
                     sequence = [board[row][col], board[row+1][col], board[row+2][col]]
                     adjacent1 = board[row+3][col] if row+3 < rows else -1
-                    if sequence.count(player) == 3 and adjacent1 == 0:
+                    # adjacent2 = board[row-1][col] if row-1 >= 0 else -1
+                    if sequence.count(player) == 3 and (adjacent1 == 0 or adjacent2 == 0):
                         count_three += 1
                         used_indices.update(indices)
 
-            # Check positively sloped diagonal for three-in-a-row first
+            # Check neg sloped diagonal for three-in-a-row first
             if row <= rows - 4 and col <= cols - 4:
                 indices = [(row, col), (row+1, col+1), (row+2, col+2)]
                 if all(index not in used_indices for index in indices):
                     sequence = [board[row][col], board[row+1][col+1], board[row+2][col+2]]
                     adjacent1 = board[row+3][col+3] if row+3 < rows and col+3 < cols else -1
-                    if sequence.count(player) == 3 and adjacent1 == 0:
+                    adjacent2 = board[row-1][col-1] if row-1 >= 0 and col-1 >= 0 else -1
+                    if sequence.count(player) == 3 and (adjacent1 == 0 or adjacent2 == 0):
                         count_three += 1
                         used_indices.update(indices)
 
-            # Check negatively sloped diagonal for three-in-a-row first
-            if row >= 3 and col <= cols - 4:
+            # Check pos sloped diagonal for three-in-a-row first
+            if row >= 2 and col <= cols - 4:
                 indices = [(row, col), (row-1, col+1), (row-2, col+2)]
                 if all(index not in used_indices for index in indices):
                     sequence = [board[row][col], board[row-1][col+1], board[row-2][col+2]]
                     adjacent1 = board[row-3][col+3] if row-3 >= 0 and col+3 < cols else -1
-                    if sequence.count(player) == 3 and adjacent1 == 0:
+                    adjacent2 = board[row+1][col-1] if row+1 < rows and col-1 >= 0 else -1
+                    if sequence.count(player) == 3 and (adjacent1 == 0 or adjacent2 == 0):
+                        # print('neg slope dia')
                         count_three += 1
                         used_indices.update(indices)
 
@@ -147,15 +156,18 @@ def check_patterns(board, player):
                             count_two += 1
 
             # Check vertical for two-in-a-row
-            if row <= rows - 3:
+            if row <= rows - 2:
                 indices = [(row, col), (row+1, col)]
                 if all(index not in used_indices for index in indices):
                     sequence = [board[row][col], board[row+1][col]]
+                    # print(sequence)
                     adjacent1 = board[row+2][col] if row+2 < rows else -1
-                    if sequence.count(player) == 2 and adjacent1 == 0:
+                    adjacent2 = board[row-1][col] if row-1 >= 0 else -1
+                    if sequence.count(player) == 2 and (adjacent1 == 0 or adjacent2 == 0):
                         count_two += 1
+                
 
-            # Check positively sloped diagonal for two-in-a-row
+            # Neg sloped diagonal - 2 in a row
             if row <= rows - 3 and col <= cols - 3:
                 indices = [(row, col), (row+1, col+1)]
                 if all(index not in used_indices for index in indices):
@@ -168,7 +180,7 @@ def check_patterns(board, player):
                         if adjacent2 == 0:
                             count_two += 1
 
-            # Check negatively sloped diagonal for two-in-a-row
+            # Pos sloped diagonal - 2 in a row
             if row >= 2 and col <= cols - 3:
                 indices = [(row, col), (row-1, col+1)]
                 if all(index not in used_indices for index in indices):
@@ -209,17 +221,68 @@ def score_position(board, player, weights=None, column_weights=None):
     return score
 
 
-def ai_move(game):
-    pass
+def get_best_move(game, player):
+    best_score = -float('inf')
+    board = game.board
+    best_move = None
+    valid_moves = get_valid_columns(board)
+    print(valid_moves)
+
+    best_move, best_score = minimax(game, 1, -float('inf'), float('inf'), player == 1)
+    print(f"Best move for Player {player}: Column {best_move+1} with score {best_score}")
+    return best_move, best_score
+
+
+def simulate_move(game, col, player):
+    board_copy = copy.deepcopy(game.board)
+    game.drop_disc(col, board_copy, player)
+    return board_copy
+
+# test_game = Connect4()
+# test_game.board = [
+#     [0, 0, 0, 2, 0, 0, 0],
+#     [0, 1, 1, 1, 2, 0, 0],
+#     [2, 2, 2, 1, 1, 0, 0],
+#     [1, 2, 1, 1, 1, 2, 0],
+#     [1, 1, 2, 2, 1, 2, 0],
+#     [2, 2, 2, 1, 2, 2, 2]
+# ]
+
+
+
+# print(score_position(test_game.board, 2))
+# test_game.print_board()
+# print("\n")
+# best_move, score = get_best_move(test_game, 1)
+
+# print(f'Best move for player 1: Column {best_move+1}')
+# print(f'Score resulting board state: {score}')
+
+test_game2 = Connect4()
+test_game2.board = [
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0],
+    [1, 0, 1, 2, 0, 0, 0],
+    [2, 2, 2, 1, 1, 0, 0]
+]
+
+print(score_position(test_game2.board, 1))
+print(score_position(test_game2.board, 2))
 
 # board = [
 #     [0, 0, 0, 0, 0, 0, 0],
 #     [0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 2],
-#     [0, 0, 0, 0, 0, 1, 0],
-#     [0, 0, 0, 0, 1, 0, 0],
-#     [0, 0, 0, 1, 0, 0, 0]
+#     [0, 0, 0, 0, 0, 0, 0],
+#     [0, 0, 0, 1, 0, 0, 0],
+#     [0, 0, 0, 2, 1, 0, 0],
+#     [0, 0, 2, 1, 2, 2, 1]
 # ]
+
+test_game2.print_board()
+print("\n")
+best_move, score = get_best_move(test_game2, 1)
 
 # player = 1
 
@@ -230,4 +293,12 @@ def ai_move(game):
 #  0.9 + 0.3 = 1.2 
 
 # 1.475
-# .575
+# 1.745
+
+# .4 + .3 + .125 + .6
+
+# 1.425
+
+# .3 + .3 + .15 + .9
+
+# 1.65
