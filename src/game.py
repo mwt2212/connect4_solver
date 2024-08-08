@@ -8,6 +8,9 @@ class Connect4:
     def create_board(self):
         return [[0 for _ in range(7)] for _ in range(6)]
     
+    def is_draw(self):
+        return all(self.board[0][col] != 0 for col in range(self.cols))
+    
     def drop_disc(self, column, board=None, player=None):
         if board is None:
             board = self.board

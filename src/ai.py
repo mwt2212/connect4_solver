@@ -16,15 +16,25 @@
 
 import random
 import copy
-from game import Connect4
+INITIAL_DEPTH = 6
 
+class AIPlayer:
+    def __init__(self, player_id, weights, depth):
+        self.player_id = player_id
+        self.weights = weights
+        self.depth = depth
+
+    def get_best_move(self, game):
+        return minimax(game, self.depth, -float('inf'), float('inf'), self.player_id == 1, self.weights)
+        
+    
 def get_valid_columns(board):
     return [col for col in range(len(board[0])) if board[0][col] == 0]
 
 def is_terminal_node(game):
     return game.check_win(1) or game.check_win(2) or len(get_valid_columns(game.board)) == 0
 
-def minimax(game, depth, alpha, beta, maximizingPlayer):
+def minimax(game, depth, alpha, beta, maximizingPlayer, weights):
     board = game.board
     valid_columns = get_valid_columns(board)
     is_terminal = is_terminal_node(game)
@@ -32,17 +42,17 @@ def minimax(game, depth, alpha, beta, maximizingPlayer):
     if depth == 0 or is_terminal:
         if is_terminal:
             if game.check_win(1):
-                game.print_board()
-                print('W for player1')
-                return (None, 1000)
+                # game.print_board()
+                # print('W for player1')
+                return (None, 1000 - (INITIAL_DEPTH - depth))
             elif game.check_win(2):
-                game.print_board()
-                print('W for player 2')
-                return (None, -1000)
+                # game.print_board()
+                # print('W for player 2')
+                return (None, -1000 + (INITIAL_DEPTH - depth))
             else:
                 return (None, 0)
         else:
-            return (None, score_position(board, 1 if maximizingPlayer else 2))
+            return (None, score_position(board, 1), weights)
 
     if maximizingPlayer:
         value = -float('inf')
@@ -50,7 +60,7 @@ def minimax(game, depth, alpha, beta, maximizingPlayer):
         for col in valid_columns:
             game_copy = copy.deepcopy(game)
             game_copy.drop_disc(col, game_copy.board, 1)
-            new_score = minimax(game_copy, depth-1, alpha, beta, False)[1]
+            new_score = minimax(game_copy, depth-1, alpha, beta, False, weights)[1]
             if new_score > value:
                 value = new_score
                 best_col = col
@@ -64,7 +74,7 @@ def minimax(game, depth, alpha, beta, maximizingPlayer):
         for col in valid_columns:
             game_copy = copy.deepcopy(game)
             game_copy.drop_disc(col, game_copy.board, 2)
-            new_score = minimax(game_copy, depth-1, alpha, beta, True)[1]
+            new_score = minimax(game_copy, depth-1, alpha, beta, True, weights)[1]
             if new_score < value:
                 value = new_score
                 best_col = col
@@ -195,18 +205,14 @@ def check_patterns(board, player):
 
     return count_two, count_three, total_pieces, num_center, num_adj
                 
-def score_position(board, player, weights=None, column_weights=None):
+def score_position(board, player, weights=None):
     if weights is None:
         weights = {
             'total_pieces': 0.1,
             'count_two': 0.3,
             'count_three': 0.9,
-        }
-
-    if column_weights is None:
-        column_weights = {
             'center': 0.15,
-            'adjacent': 0.125,
+            'adjacent': 0.125
         }
 
     count_two, count_three, total_pieces, num_center, num_adj = check_patterns(board, player)
@@ -214,24 +220,11 @@ def score_position(board, player, weights=None, column_weights=None):
     score = (total_pieces * weights.get('total_pieces') +
              count_two * weights.get('count_two') +
              count_three * weights.get('count_three') +
-             num_center * column_weights.get('center') +
-             num_adj * column_weights.get('adjacent'))
+             num_center * weights.get('center') +
+             num_adj * weights.get('adjacent'))
     
     score = round(score, 3)
     return score
-
-
-def get_best_move(game, player):
-    best_score = -float('inf')
-    board = game.board
-    best_move = None
-    valid_moves = get_valid_columns(board)
-    print(valid_moves)
-
-    best_move, best_score = minimax(game, 1, -float('inf'), float('inf'), player == 1)
-    print(f"Best move for Player {player}: Column {best_move+1} with score {best_score}")
-    return best_move, best_score
-
 
 def simulate_move(game, col, player):
     board_copy = copy.deepcopy(game.board)
@@ -258,31 +251,31 @@ def simulate_move(game, col, player):
 # print(f'Best move for player 1: Column {best_move+1}')
 # print(f'Score resulting board state: {score}')
 
-test_game2 = Connect4()
-test_game2.board = [
-    [0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 1, 0, 0, 0],
-    [1, 0, 1, 2, 0, 0, 0],
-    [2, 2, 2, 1, 1, 0, 0]
-]
-
-print(score_position(test_game2.board, 1))
-print(score_position(test_game2.board, 2))
-
-# board = [
+# test_game2 = Connect4()
+# test_game2.board = [
 #     [0, 0, 0, 0, 0, 0, 0],
 #     [0, 0, 0, 0, 0, 0, 0],
 #     [0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 1, 0, 0, 0],
-#     [0, 0, 0, 2, 1, 0, 0],
-#     [0, 0, 2, 1, 2, 2, 1]
+#     [0, 0, 0, 0, 0, 0, 0],
+#     [0, 0, 0, 2, 2, 2, 0],
+#     [0, 0, 0, 1, 1, 1, 0]
 # ]
 
-test_game2.print_board()
-print("\n")
-best_move, score = get_best_move(test_game2, 1)
+# print(score_position(test_game2.board, 1))
+# print(score_position(test_game2.board, 2))
+
+# # # board = [
+# # #     [0, 0, 0, 0, 0, 0, 0],
+# # #     [0, 0, 0, 0, 0, 0, 0],
+# # #     [0, 0, 0, 0, 0, 0, 0],
+# # #     [0, 0, 0, 1, 0, 0, 0],
+# # #     [0, 0, 0, 2, 1, 0, 0],
+# # #     [0, 0, 2, 1, 2, 2, 1]
+# # # ]
+
+# test_game2.print_board()
+# print("\n")
+# best_move, score = get_best_move(test_game2, 1)
 
 # player = 1
 
